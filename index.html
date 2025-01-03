@@ -143,7 +143,7 @@
                 document.getElementById('dhuhrIqama').innerText = addMinutesToTime(timings.Dhuhr, 20);
                 document.getElementById('asrIqama').innerText = addMinutesToTime(timings.Asr, 20);
                 document.getElementById('maghribIqama').innerText = addMinutesToTime(timings.Maghrib, 10);
-                document.getElementById('ishaIqama').innerText = addMinutesToTime(timings.Isha, 20);
+                document.getElementById('ishaIqama').innerText = addMinutesToTime(timings.Isha, 10); // تم التعديل هنا
 
                 highlightNextPrayer(timings);
             } catch (error) {
