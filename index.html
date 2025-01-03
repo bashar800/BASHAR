@@ -107,7 +107,41 @@
         </tbody>
     </table>
     <script>
-        let nextPrayerTime = null;
+        async function fetchPrayerTimes() {
+            try {
+                const response = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Karak&country=Jordan&method=2');
+                const data = await response.json();
+                const timings = data.data.timings;
+
+                // إدخال أوقات الأذان
+                document.getElementById('fajrAdhan').innerText = timings.Fajr;
+                document.getElementById('shorooqAdhan').innerText = timings.Sunrise;
+                document.getElementById('dhuhrAdhan').innerText = timings.Dhuhr;
+                document.getElementById('asrAdhan').innerText = timings.Asr;
+                document.getElementById('maghribAdhan').innerText = timings.Maghrib;
+                document.getElementById('ishaAdhan').innerText = timings.Isha;
+
+                // حساب أوقات الإقامة
+                document.getElementById('fajrIqama').innerText = addMinutesToTime(timings.Fajr, 20);
+                document.getElementById('dhuhrIqama').innerText = addMinutesToTime(timings.Dhuhr, 20);
+                document.getElementById('asrIqama').innerText = addMinutesToTime(timings.Asr, 20);
+                document.getElementById('maghribIqama').innerText = addMinutesToTime(timings.Maghrib, 10);
+                document.getElementById('ishaIqama').innerText = addMinutesToTime(timings.Isha, 10); // صلاة العشاء 10 دقائق
+
+            } catch (error) {
+                console.error('خطأ في جلب مواقيت الصلاة:', error);
+            }
+        }
+
+        function addMinutesToTime(time, minutesToAdd) {
+            const [hours, minutes] = time.split(':').map(Number);
+            const date = new Date();
+            date.setHours(hours);
+            date.setMinutes(minutes + minutesToAdd);
+            const newHours = String(date.getHours()).padStart(2, '0');
+            const newMinutes = String(date.getMinutes()).padStart(2, '0');
+            return `${newHours}:${newMinutes}`;
+        }
 
         function updateClock() {
             const now = new Date();
@@ -126,97 +160,12 @@
             document.getElementById('date').innerText = `${gregorianDate} / ${hijriDate}`;
         }
 
-        async function fetchPrayerTimes() {
-            try {
-                const response = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Karak&country=Jordan&method=2');
-                const data = await response.json();
-                const timings = data.data.timings;
-
-                document.getElementById('fajrAdhan').innerText = timings.Fajr;
-                document.getElementById('shorooqAdhan').innerText = timings.Sunrise;
-                document.getElementById('dhuhrAdhan').innerText = timings.Dhuhr;
-                document.getElementById('asrAdhan').innerText = timings.Asr;
-                document.getElementById('maghribAdhan').innerText = timings.Maghrib;
-                document.getElementById('ishaAdhan').innerText = timings.Isha;
-
-                document.getElementById('fajrIqama').innerText = addMinutesToTime(timings.Fajr, 20);
-                document.getElementById('dhuhrIqama').innerText = addMinutesToTime(timings.Dhuhr, 20);
-                document.getElementById('asrIqama').innerText = addMinutesToTime(timings.Asr, 20);
-                document.getElementById('maghribIqama').innerText = addMinutesToTime(timings.Maghrib, 10);
-                document.getElementById('ishaIqama').innerText = addMinutesToTime(timings.Isha, 10); // تم التعديل هنا
-
-                highlightNextPrayer(timings);
-            } catch (error) {
-                console.error('خطأ في جلب مواقيت الصلاة:', error);
-            }
-        }
-
-        function addMinutesToTime(time, minutesToAdd) {
-            const [hours, minutes] = time.split(':').map(Number);
-            const date = new Date();
-            date.setHours(hours);
-            date.setMinutes(minutes + minutesToAdd);
-            const newHours = String(date.getHours()).padStart(2, '0');
-            const newMinutes = String(date.getMinutes()).padStart(2, '0');
-            return `${newHours}:${newMinutes}`;
-        }
-
-        function highlightNextPrayer(timings) {
-            const now = new Date();
-            const prayerTimes = [
-                { id: 'fajrRow', time: timings.Fajr, name: 'الفجر' },
-                { id: 'shorooqRow', time: timings.Sunrise, name: 'الشروق' },
-                { id: 'dhuhrRow', time: timings.Dhuhr, name: 'الظهر' },
-                { id: 'asrRow', time: timings.Asr, name: 'العصر' },
-                { id: 'maghribRow', time: timings.Maghrib, name: 'المغرب' },
-                { id: 'ishaRow', time: timings.Isha, name: 'العشاء' }
-            ];
-
-            let nextPrayerId = null;
-            let nextPrayerName = null;
-
-            for (const prayer of prayerTimes) {
-                const [hours, minutes] = prayer.time.split(':').map(Number);
-                const prayerTime = new Date();
-                prayerTime.setHours(hours, minutes, 0, 0);
-
-                if (prayerTime > now) {
-                    nextPrayerId = prayer.id;
-                    nextPrayerName = prayer.name;
-                    nextPrayerTime = prayerTime;
-                    break;
-                }
-            }
-
-            document.querySelectorAll('tr').forEach(row => row.classList.remove('highlight'));
-            if (nextPrayerId) {
-                document.getElementById(nextPrayerId).classList.add('highlight');
-                document.getElementById('currentPrayer').innerText = `الصلاة الحالية: ${nextPrayerName}`;
-            } else {
-                document.getElementById('currentPrayer').innerText = 'لا توجد صلاة قادمة اليوم';
-                nextPrayerTime = null;
-            }
-        }
-
-        function updateCountdown() {
-            const now = new Date();
-            if (nextPrayerTime && nextPrayerTime > now) {
-                const diff = Math.floor((nextPrayerTime - now) / 1000);
-                const diffHours = Math.floor(diff / 3600);
-                const diffMinutes = Math.floor((diff % 3600) / 60);
-                const diffSeconds = diff % 60;
-                document.getElementById('countdown').innerText = `المتبقي للإقامة: ${diffHours} ساعة ${diffMinutes} دقيقة ${diffSeconds} ثانية`;
-            } else {
-                document.getElementById('countdown').innerText = 'جاري التحديث...';
-            }
-        }
-
+        // استدعاء الدوال
         updateClock();
         updateDate();
         fetchPrayerTimes();
-        setInterval(updateClock, 1000);
-        setInterval(updateCountdown, 1000);
-        setInterval(fetchPrayerTimes, 3600000);
+        setInterval(updateClock, 1000); // تحديث الوقت كل ثانية
+        setInterval(fetchPrayerTimes, 3600000); // تحديث أوقات الصلاة كل ساعة
     </script>
 </body>
 </html>
